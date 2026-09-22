@@ -1,10 +1,5 @@
 import http from "node:http";
-import {
-  listTasks,
-  createTask,
-  completeTask,
-  updateTaskTitle,
-} from "./handlers.js";
+import { listTasks, createTask, completeTask, updateTaskTitle } from "./handlers.js";
 
 const PORT = 3000;
 

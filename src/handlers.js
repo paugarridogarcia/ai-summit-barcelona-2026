@@ -2,11 +2,6 @@ import * as store from "./store.js";
 
 const MAX = 140;
 
-function sendError(res, status, message) {
-  res.writeHead(status, { "Content-Type": "application/json" });
-  res.end(JSON.stringify({ error: message }));
-}
-
 export function listTasks(req, res) {
   res.writeHead(200, { "Content-Type": "application/json" });
   res.end(JSON.stringify(store.all()));
@@ -31,24 +26,36 @@ export function completeTask(req, res, id) {
 }
 
 export function updateTaskTitle(req, res, id, body) {
+  const taskId = Number(id);
+  if (!Number.isInteger(taskId)) {
+    return sendError(res, 400, "invalid_id", "task id must be an integer");
+  }
+
   let parsed;
   try {
     parsed = JSON.parse(body);
   } catch {
-    return sendError(res, 400, "invalid JSON");
+    return sendError(res, 400, "invalid_json", "body must be valid JSON");
   }
-  const title = parsed && parsed.title;
-  if (typeof title !== "string" || title.trim() === "") {
-    return sendError(res, 400, "title is required");
+
+  if (typeof parsed.title !== "string" || parsed.title.trim() === "") {
+    return sendError(res, 400, "invalid_title", "title must be a non-empty string");
   }
-  if (title.length > MAX) {
-    return sendError(res, 400, "title too long");
+  if (parsed.title.length > MAX) {
+    return sendError(res, 400, "title_too_long", "title must be " + MAX + " characters or fewer");
   }
-  const task = store.find(Number(id));
+
+  const task = store.find(taskId);
   if (!task) {
-    return sendError(res, 404, "not found");
+    return sendError(res, 404, "not_found", "no task with that id");
   }
-  task.title = title;
+
+  task.title = parsed.title;
   res.writeHead(200, { "Content-Type": "application/json" });
   res.end(JSON.stringify(task));
+}
+
+function sendError(res, status, code, message) {
+  res.writeHead(status, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ error: { code: code, message: message } }));
 }
