@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as store from "./store.js";
-import { updateTaskTitle } from "./handlers.js";
+import { updateTaskTitle, deleteTask } from "./handlers.js";
 
 function fakeRes() {
   return {
@@ -76,4 +76,44 @@ test("returns 404 when the task does not exist", () => {
 
   assert.equal(res.status, 404);
   assert.equal(JSON.parse(res.body).error.code, "not_found");
+});
+
+test("deletes an existing task and returns 204 with no body", () => {
+  const task = store.add("to delete");
+  const res = fakeRes();
+
+  deleteTask(req, res, String(task.id));
+
+  assert.equal(res.status, 204);
+  assert.equal(res.body, undefined);
+  assert.equal(store.find(task.id), undefined);
+});
+
+test("delete rejects an id that is not an integer", () => {
+  const res = fakeRes();
+
+  deleteTask(req, res, "abc");
+
+  assert.equal(res.status, 400);
+  assert.equal(JSON.parse(res.body).error.code, "invalid_id");
+});
+
+test("delete rejects an id below one", () => {
+  const res = fakeRes();
+
+  deleteTask(req, res, "0");
+
+  assert.equal(res.status, 400);
+  assert.equal(JSON.parse(res.body).error.code, "invalid_id");
+});
+
+test("delete returns 404 when the task does not exist and removes nothing", () => {
+  const before = store.all().length;
+  const res = fakeRes();
+
+  deleteTask(req, res, "99999");
+
+  assert.equal(res.status, 404);
+  assert.equal(JSON.parse(res.body).error.code, "not_found");
+  assert.equal(store.all().length, before);
 });

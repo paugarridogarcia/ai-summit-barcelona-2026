@@ -19,8 +19,12 @@ export function add(title) {
 }
 
 export function remove(id) {
-  const i = tasks.indexOf(find(id));
+  const i = tasks.findIndex((t) => t.id === id);
+  if (i === -1) {
+    return false;
+  }
   tasks.splice(i, 1);
+  return true;
 }
 
 add("read the workshop README");
