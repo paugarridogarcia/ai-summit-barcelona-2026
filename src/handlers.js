@@ -2,10 +2,26 @@ import * as store from "./store.js";
 import { logger } from "./logger.js";
 
 const MAX = 140;
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 100;
 
-export function listTasks(req, res) {
+export function listTasks(req, res, query = new URLSearchParams()) {
+  const rawLimit = query.get("limit");
+  const limit = rawLimit === null ? DEFAULT_LIMIT : parseIntParam(rawLimit);
+  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIMIT) {
+    return sendError(res, 400, "invalid_limit", "limit must be an integer between 1 and " + MAX_LIMIT);
+  }
+
+  const rawOffset = query.get("offset");
+  const offset = rawOffset === null ? 0 : parseIntParam(rawOffset);
+  if (!Number.isInteger(offset) || offset < 0) {
+    return sendError(res, 400, "invalid_offset", "offset must be an integer of 0 or more");
+  }
+
+  const tasks = store.all();
+  const items = tasks.slice(offset, offset + limit);
   res.writeHead(200, { "Content-Type": "application/json" });
-  res.end(JSON.stringify(store.all()));
+  res.end(JSON.stringify({ items: items, total: tasks.length, limit: limit, offset: offset }));
 }
 
 export function createTask(req, res, body) {
@@ -89,6 +105,13 @@ export function deleteTask(req, res, id) {
 
   res.writeHead(204);
   res.end();
+}
+
+function parseIntParam(raw) {
+  if (!/^\d+$/.test(raw)) {
+    return NaN;
+  }
+  return Number(raw);
 }
 
 function sendError(res, status, code, message) {
